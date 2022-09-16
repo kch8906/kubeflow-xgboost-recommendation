@@ -20,13 +20,13 @@ def split_train_test(df: pd.DataFrame):
     X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.25, random_state=156)
     X_tr, X_val, y_tr, y_val = train_test_split(X_train, y_train, test_size=0.1, random_state=156)
     
-   
-    np.save('/tmp/x_test.npy', X_test)    
-    np.save('/tmp/y_test.npy', y_test)
-    np.save('/tmp/x_tr.npy', X_tr)
-    np.save('/tmp/x_val.npy', X_val)
-    np.save('/tmp/y_tr.npy', y_tr)
-    np.save('/tmp/y_val.npy', y_val)
+    X_tr.to_json("/tmp/x_tr.json", orient = "records")
+    y_tr.to_json("/tmp/y_tr.json", orient = "records")
+    X_val.to_json("/tmp/x_val.json", orient = "records")
+    y_val.to_json("/tmp/y_val.json", orient = "records")
+    X_test.to_json("/tmp/x_test.json", orient = "records")
+    y_test.to_json("/tmp/y_test.json", orient = "records")
+
 
 
 if __name__ == "__main__" :

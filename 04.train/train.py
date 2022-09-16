@@ -1,9 +1,20 @@
 import argparse
-import joblib
+import pandas as pd
 import xgboost as xgb
 import matplotlib.pyplot as plt
+import json
+import dill
 
-def XGBoost_train(x_tr, y_tr, x_val, y_val):
+
+def readJson(path: str):
+    with open(f'{path}') as f:
+        js = json.loads(f.read()) 
+        df = pd.DataFrame(js)        
+
+    return df
+
+
+def XGBoost_train(x_tr, y_tr, x_val, y_val) -> pd.DataFrame:
     dtr = xgb.DMatrix(data=x_tr, label=y_tr)
     dval = xgb.DMatrix(data=x_val, label=y_val)    
     
@@ -13,7 +24,7 @@ def XGBoost_train(x_tr, y_tr, x_val, y_val):
                'objective':'multi:softprob',
                'eval_metric':'mlogloss',
              }
-    num_rounds = 20
+    num_rounds = 3
     
     eval_list = [(dtr,'train'),(dval,'eval')]
     evals_result = {}
@@ -22,14 +33,18 @@ def XGBoost_train(x_tr, y_tr, x_val, y_val):
                           early_stopping_rounds=10, evals=eval_list, evals_result=evals_result )
     
     
-    fig = plt.figure(figsize=(15, 17))
-    plt.plot(evals_result['train']['mlogloss'])
-    plt.plot(evals_result['eval']['mlogloss'])
-    plt.xlabel('epochs')
-    plt.ylabel('multi log loss')
+    # fig = plt.figure(figsize=(15, 17))
+    # plt.plot(evals_result['train']['mlogloss'])
+    # plt.plot(evals_result['eval']['mlogloss'])
+    # plt.xlabel('epochs')
+    # plt.ylabel('multi log loss')
 
-    filename = 'xgb_model.model'
-    joblib.dump(xgb_model, open(filename, 'wb'))
+    model_path = '/tmp/xgb_model.pkl'
+    
+    with open(f'{model_path}', 'wb') as f:
+        dill.dump(xgb_model, f)
+
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -39,7 +54,14 @@ if __name__ == '__main__':
     parser.add_argument('--y_val')
     args = parser.parse_args()
 
-    XGBoost_train(args.x_tr, args.y_tr, args.x_val, args.y_val)
+    x_tr = readJson(args.x_tr)
+    y_tr = readJson(args.y_tr)
+    x_val = readJson(args.x_val)
+    y_val = readJson(args.y_val)
+
+    XGBoost_train(x_tr, y_tr, x_val, y_val)
+
+
 
 
 

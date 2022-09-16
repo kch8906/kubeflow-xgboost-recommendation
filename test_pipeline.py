@@ -33,17 +33,32 @@ def preprocess_op(df_customer, df_purchase, df_product):
 def spilt_data_op(df):
     return dsl.ContainerOp(
         name='Split Data',
-        image='crysiss/kubeflow-split-data:0.1',
+        image='crysiss/kubeflow-split-data:0.2',
         arguments=[
             '--df', df
             ],
         file_outputs={
-            'x_tr': '/tmp/x_tr.npy',
-            'y_tr': '/tmp/y_tr.npy',
-            'x_val': '/tmp/x_val.npy',
-            'y_val': '/tmp/y_val.npy',
-            'x_test': '/tmp/x_test.npy',
-            'y_test': '/tmp/y_test.npy'
+            'x_tr': '/tmp/x_tr.json',
+            'y_tr': '/tmp/y_tr.json',
+            'x_val': '/tmp/x_val.json',
+            'y_val': '/tmp/y_val.json',
+            'x_test': '/tmp/x_test.json',
+            'y_test': '/tmp/y_test.json'
+        }
+    )
+
+def train_op(x_tr, y_tr, x_val, y_val):
+    return dsl.ContainerOp(
+        name='Train Model',
+        image='crysiss/kubeflow-train:0.2',
+        arguments=[
+            '--x_tr', x_tr,
+            '--y_tr', y_tr,
+            '--x_val', x_val,
+            '--y_val', y_val
+            ],
+        file_outputs={
+            'model': '/tmp/xgb_model.pkl'
         }
     )
 
@@ -64,6 +79,13 @@ def data_pipeline():
     _spilt_data_op = spilt_data_op(
         dsl.InputArgumentPath(_preprocess.outputs['df'])
     ).after(_preprocess)
+
+    _train_op = train_op(
+        dsl.InputArgumentPath(_spilt_data_op.outputs['x_tr']),
+        dsl.InputArgumentPath(_spilt_data_op.outputs['y_tr']),
+        dsl.InputArgumentPath(_spilt_data_op.outputs['x_val']),
+        dsl.InputArgumentPath(_spilt_data_op.outputs['y_val'])
+    ).after(_spilt_data_op)
 
 
 if __name__ == "__main__":

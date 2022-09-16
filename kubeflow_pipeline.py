@@ -3,7 +3,6 @@ from kfp import dsl
 from kfp import onprem
 
 
-
 @dsl.pipeline(name='XGBOOST-REC Pipeline',
               description='A pipeline that trains and logs a classification model'
 )
