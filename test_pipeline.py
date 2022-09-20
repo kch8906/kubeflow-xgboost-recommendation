@@ -62,6 +62,20 @@ def train_op(x_tr, y_tr, x_val, y_val):
         }
     )
 
+def test_op(x_test, y_test, model):
+    return dsl.ContainerOp(
+        name='Test Model',
+        image='crysiss/kubeflow-test:0.4',
+        arguments=[
+            '--x_test', x_test,
+            '--y_test', y_test,
+            '--model', model
+        ],
+        file_outputs={
+            'pred_probs': '/tmp/pred_probs.npy'
+        }
+    )
+
 
 
 @dsl.pipeline(name='XGBOOST-REC Pipeline',
@@ -86,6 +100,12 @@ def data_pipeline():
         dsl.InputArgumentPath(_spilt_data_op.outputs['x_val']),
         dsl.InputArgumentPath(_spilt_data_op.outputs['y_val'])
     ).after(_spilt_data_op)
+
+    _test_op = test_op(
+        dsl.InputArgumentPath(_spilt_data_op.outputs['x_test']),
+        dsl.InputArgumentPath(_spilt_data_op.outputs['y_test']),
+        dsl.InputArgumentPath(_train_op.outputs['model']),
+    ).after(_train_op)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,5 @@
+pandas==1.4.3
+xgboost==1.6.2
+dill==0.3.5.1
+pickle-mixin
+tqdm==4.64.0

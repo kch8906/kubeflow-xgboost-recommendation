@@ -5,8 +5,8 @@ import json, pandas as pd
     
 def s3_download():
     s3_client = boto3.client('s3', region_name='ap-northeast-2',
-                         aws_access_key_id='AKIAVEWKFLQL3R3QD2UU', 
-                         aws_secret_access_key='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')
+                         aws_access_key_id='aws_access_key_id', 
+                         aws_secret_access_key='aws_secret_access_key')
 
     bucket = 'changhyun-xgboost'
     filenames = ['LPOINT_BIG_COMP_01_DEMO.csv', 'LPOINT_BIG_COMP_02_PDDE.csv', 'LPOINT_BIG_COMP_04_PD_CLAC.csv']
