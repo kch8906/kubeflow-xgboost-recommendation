@@ -28,7 +28,7 @@ def predict(x_test: csv, y_test: csv, model: dill):
     dtest = xgb.DMatrix(data=x_test, label=y_test)
     pred_probs = model.predict(dtest)
 
-    np.save('/tmp/pred_probs.npy')
+    np.save('/tmp/pred_probs.npy', pred_probs)
 
     return pred_probs
     

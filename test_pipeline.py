@@ -1,6 +1,7 @@
 from ast import arguments
 import kfp
 from kfp import dsl
+from kfp.components import OutputPath
 from kfp import onprem
 
 
@@ -65,7 +66,7 @@ def train_op(x_tr, y_tr, x_val, y_val):
 def test_op(x_test, y_test, model):
     return dsl.ContainerOp(
         name='Test Model',
-        image='crysiss/kubeflow-test:0.4',
+        image='crysiss/kubeflow-test:0.5',
         arguments=[
             '--x_test', x_test,
             '--y_test', y_test,
@@ -75,6 +76,22 @@ def test_op(x_test, y_test, model):
             'pred_probs': '/tmp/pred_probs.npy'
         }
     )
+
+def extract_top_op(y_test, pred_probs):
+    return dsl.ContainerOp(
+        name='Extract Top5&10',
+        image='crysiss/kubeflow-metric:0.1',
+        arguments=[
+            '--y_test', y_test,
+            '--pred_probs', pred_probs
+        ],
+        file_outputs={
+            'metrics': 'tmp/metrics.json'
+        }
+    )
+
+
+
 
 
 
@@ -107,6 +124,12 @@ def data_pipeline():
         dsl.InputArgumentPath(_train_op.outputs['model']),
     ).after(_train_op)
 
+    _extract_top_op = extract_top_op(
+        dsl.InputArgumentPath(_spilt_data_op.outputs['x_test']),
+        dsl.InputArgumentPath(_test_op.outputs['pred_probs'])
+    ).after(_test_op)
+
+
 
 if __name__ == "__main__":
     import kfp.compiler as compiler
@@ -117,7 +140,7 @@ if __name__ == "__main__":
     version = 'v0.1'
     run_name = f'kubeflow study {version}'
     experiment_name = 'xgboost_1'
-    pipeline_path = 'pipeline.tar.gz'
+    pipeline_path = 'xgboost_pipeline.yaml'
 
     compiler.Compiler().compile(data_pipeline, pipeline_path)
     # client = kfp.Client(host=host, namespace=namespace)

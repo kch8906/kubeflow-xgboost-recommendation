@@ -1,0 +1,161 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: xgboost-rec-pipeline-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.13, pipelines.kubeflow.org/pipeline_compilation_time: '2022-09-21T18:18:28.568035',
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "A pipeline that trains
+      and logs a classification model", "name": "XGBOOST-REC Pipeline"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.13}
+spec:
+  entrypoint: xgboost-rec-pipeline
+  templates:
+  - name: convert-data
+    container:
+      args: []
+      image: crysiss/kubeflow-convertjson:0.2
+    outputs:
+      artifacts:
+      - {name: convert-data-df_customer, path: /tmp/df_customer.json}
+      - {name: convert-data-df_product, path: /tmp/df_product.json}
+      - {name: convert-data-df_purchase, path: /tmp/df_purchase.json}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.13
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+  - name: extract-top5-10
+    container:
+      args: [--y_test, /tmp/inputs/input-0/data, --pred_probs, /tmp/inputs/input-1/data]
+      image: crysiss/kubeflow-metric:0.1
+    inputs:
+      artifacts:
+      - {name: split-data-x_test, path: /tmp/inputs/input-0/data}
+      - {name: test-model-pred_probs, path: /tmp/inputs/input-1/data}
+    outputs:
+      artifacts:
+      - {name: extract-top5-10-metrics, path: tmp/metrics.json}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.13
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+  - name: preprocess-data
+    container:
+      args: [--df_customer, /tmp/inputs/input-0/data, --df_purchase, /tmp/inputs/input-1/data,
+        --df_product, /tmp/inputs/input-2/data]
+      image: crysiss/kubeflow-preprocess-a:0.3
+    inputs:
+      artifacts:
+      - {name: convert-data-df_customer, path: /tmp/inputs/input-0/data}
+      - {name: convert-data-df_purchase, path: /tmp/inputs/input-1/data}
+      - {name: convert-data-df_product, path: /tmp/inputs/input-2/data}
+    outputs:
+      artifacts:
+      - {name: preprocess-data-df, path: /tmp/prerprocess.json}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.13
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+  - name: split-data
+    container:
+      args: [--df, /tmp/inputs/input-0/data]
+      image: crysiss/kubeflow-split-data:0.2
+    inputs:
+      artifacts:
+      - {name: preprocess-data-df, path: /tmp/inputs/input-0/data}
+    outputs:
+      artifacts:
+      - {name: split-data-x_test, path: /tmp/x_test.json}
+      - {name: split-data-x_tr, path: /tmp/x_tr.json}
+      - {name: split-data-x_val, path: /tmp/x_val.json}
+      - {name: split-data-y_test, path: /tmp/y_test.json}
+      - {name: split-data-y_tr, path: /tmp/y_tr.json}
+      - {name: split-data-y_val, path: /tmp/y_val.json}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.13
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+  - name: test-model
+    container:
+      args: [--x_test, /tmp/inputs/input-0/data, --y_test, /tmp/inputs/input-1/data,
+        --model, /tmp/inputs/input-2/data]
+      image: crysiss/kubeflow-test:0.5
+    inputs:
+      artifacts:
+      - {name: split-data-x_test, path: /tmp/inputs/input-0/data}
+      - {name: split-data-y_test, path: /tmp/inputs/input-1/data}
+      - {name: train-model-model, path: /tmp/inputs/input-2/data}
+    outputs:
+      artifacts:
+      - {name: test-model-pred_probs, path: /tmp/pred_probs.npy}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.13
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+  - name: train-model
+    container:
+      args: [--x_tr, /tmp/inputs/input-0/data, --y_tr, /tmp/inputs/input-1/data, --x_val,
+        /tmp/inputs/input-2/data, --y_val, /tmp/inputs/input-3/data]
+      image: crysiss/kubeflow-train:0.2
+    inputs:
+      artifacts:
+      - {name: split-data-x_tr, path: /tmp/inputs/input-0/data}
+      - {name: split-data-y_tr, path: /tmp/inputs/input-1/data}
+      - {name: split-data-x_val, path: /tmp/inputs/input-2/data}
+      - {name: split-data-y_val, path: /tmp/inputs/input-3/data}
+    outputs:
+      artifacts:
+      - {name: train-model-model, path: /tmp/xgb_model.pkl}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.13
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+  - name: xgboost-rec-pipeline
+    dag:
+      tasks:
+      - {name: convert-data, template: convert-data}
+      - name: extract-top5-10
+        template: extract-top5-10
+        dependencies: [split-data, test-model]
+        arguments:
+          artifacts:
+          - {name: split-data-x_test, from: '{{tasks.split-data.outputs.artifacts.split-data-x_test}}'}
+          - {name: test-model-pred_probs, from: '{{tasks.test-model.outputs.artifacts.test-model-pred_probs}}'}
+      - name: preprocess-data
+        template: preprocess-data
+        dependencies: [convert-data]
+        arguments:
+          artifacts:
+          - {name: convert-data-df_customer, from: '{{tasks.convert-data.outputs.artifacts.convert-data-df_customer}}'}
+          - {name: convert-data-df_product, from: '{{tasks.convert-data.outputs.artifacts.convert-data-df_product}}'}
+          - {name: convert-data-df_purchase, from: '{{tasks.convert-data.outputs.artifacts.convert-data-df_purchase}}'}
+      - name: split-data
+        template: split-data
+        dependencies: [preprocess-data]
+        arguments:
+          artifacts:
+          - {name: preprocess-data-df, from: '{{tasks.preprocess-data.outputs.artifacts.preprocess-data-df}}'}
+      - name: test-model
+        template: test-model
+        dependencies: [split-data, train-model]
+        arguments:
+          artifacts:
+          - {name: split-data-x_test, from: '{{tasks.split-data.outputs.artifacts.split-data-x_test}}'}
+          - {name: split-data-y_test, from: '{{tasks.split-data.outputs.artifacts.split-data-y_test}}'}
+          - {name: train-model-model, from: '{{tasks.train-model.outputs.artifacts.train-model-model}}'}
+      - name: train-model
+        template: train-model
+        dependencies: [split-data]
+        arguments:
+          artifacts:
+          - {name: split-data-x_tr, from: '{{tasks.split-data.outputs.artifacts.split-data-x_tr}}'}
+          - {name: split-data-x_val, from: '{{tasks.split-data.outputs.artifacts.split-data-x_val}}'}
+          - {name: split-data-y_tr, from: '{{tasks.split-data.outputs.artifacts.split-data-y_tr}}'}
+          - {name: split-data-y_val, from: '{{tasks.split-data.outputs.artifacts.split-data-y_val}}'}
+  arguments:
+    parameters: []
+  serviceAccountName: pipeline-runner
