@@ -16,7 +16,9 @@ XGBOOST를 이용해서 추천시스템을 구현하는 것을 Kubeflow pipeline
 6. extract-top5-10 : 상위 5, 10 추론 정확도 측정
 <br>
 <br>
-# ISSUE
+
+# ISSUE <br>
+
 ##### 1. XGBoost로 bagging 시도
 https://github.com/kch8906/kubeflow-xgboost-recommendation/issues/1#issue-1368873179
 
@@ -27,4 +29,10 @@ https://github.com/kch8906/kubeflow-xgboost-recommendation/issues/2#issue-136888
 https://github.com/kch8906/kubeflow-xgboost-recommendation/issues/3#issue-1369218180
 
 
+# schedule
 
+##### 1. Train 노드 gpu 할당
+##### 2. Mlflow 및 Seldon-core로 모델 serving
+##### 3. 프로메테우스, 그라파나로 리소스 모니터링
+##### 4. Github Actions CI/CD
+##### 5. Feast(가능할지 미지수 - 데이터 마켓 필요)
