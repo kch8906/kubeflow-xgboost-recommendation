@@ -8,7 +8,7 @@ import json
 def readJson(path: str):
     with open(f'{path}') as f:
         js = json.loads(f.read()) 
-        df = pd.DataFrame(js)        
+        df = pd.Series(js)        
 
     return df
 
@@ -16,18 +16,18 @@ def readJson(path: str):
 def accuracy_top(y_test: pd.Series, pred_probs: np.array, n: int):
     pred_copy = pred_probs.copy()
     idx=[]
-    for i in tqdm(range(len(pred_copy))):
+    for i in range(len(pred_copy)):
         sort_values = pred_copy[i].argsort()
-        idx.append(sort_values[:: -1][:n])
+        idx.append(sort_values[:: -1][:n].tolist())
 
     result = 0    
-    y_list = np.array(list(y_test))
+    y_list = list(y_test)
 
-    for i in tqdm(range(len(pred_probs))):
-        if str(y_list[i] in idx[i]) == 'True':
+    for j in range(len(y_list)):
+        if y_list[j] in idx[j]:
             result += 1
 
-    acc = result / len(pred_probs)
+    acc = result / len(pred_copy)
 
     return acc
 
@@ -65,5 +65,3 @@ if __name__ == "__main__":
     acc_top10 = accuracy_top(y_test, pred_probs, 10)
 
     export_metric(acc_top5, acc_top10)
-
-    print(acc_top5, acc_top10)

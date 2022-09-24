@@ -80,7 +80,7 @@ def test_op(x_test, y_test, model):
 def extract_top_op(y_test, pred_probs):
     return dsl.ContainerOp(
         name='Extract Top5&10',
-        image='crysiss/kubeflow-metric:0.1',
+        image='crysiss/kubeflow-metric:0.8.6',
         arguments=[
             '--y_test', y_test,
             '--pred_probs', pred_probs
@@ -125,7 +125,7 @@ def data_pipeline():
     ).after(_train_op)
 
     _extract_top_op = extract_top_op(
-        dsl.InputArgumentPath(_spilt_data_op.outputs['x_test']),
+        dsl.InputArgumentPath(_spilt_data_op.outputs['y_test']),
         dsl.InputArgumentPath(_test_op.outputs['pred_probs'])
     ).after(_test_op)
 
@@ -134,15 +134,20 @@ def data_pipeline():
 if __name__ == "__main__":
     import kfp.compiler as compiler
 
-    host = 'http://127.0.0.1:8080/'
-    namespace = 'kch'
-    pipeline_name = 'XGBoost'    
-    version = 'v0.1'
-    run_name = f'kubeflow study {version}'
-    experiment_name = 'xgboost_1'
-    pipeline_path = 'xgboost_pipeline.yaml'
+    # host = 'http://127.0.0.1:8080/'
+    # namespace = 'kch'
+    # pipeline_name = 'XGBoost'    
+    # version = 'v0.1'
+    # run_name = f'kubeflow study {version}'
+    # experiment_name = 'xgboost_1'
+    # pipeline_path = 'xgboost_pipeline.yaml'
 
-    compiler.Compiler().compile(data_pipeline, pipeline_path)
+    compiler.Compiler().compile(data_pipeline, 'xgboost_kf.yaml')
+
+    # client = kfp.Client()
+    # my_experiment = client.create_experiment(name='kubeflow')    
+    # my_run = client.run_pipeline(my_experiment.id, 'Sequential pipeline', 'xgboost_kf.yaml')
+
     # client = kfp.Client(host=host, namespace=namespace)
 
     # pipeline_id = client.get_pipeline_id(pipeline_name)

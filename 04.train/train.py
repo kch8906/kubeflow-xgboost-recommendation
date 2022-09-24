@@ -18,13 +18,13 @@ def XGBoost_train(x_tr, y_tr, x_val, y_val) -> pd.DataFrame:
     dtr = xgb.DMatrix(data=x_tr, label=y_tr)
     dval = xgb.DMatrix(data=x_val, label=y_val)    
     
-    params = { 'max_depth':5,
+    params = { 'max_depth':15,
                'num_class':60,
                'eta':0.05,
                'objective':'multi:softprob',
                'eval_metric':'mlogloss',
              }
-    num_rounds = 3
+    num_rounds = 10
     
     eval_list = [(dtr,'train'),(dval,'eval')]
     evals_result = {}

@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: xgboost-rec-pipeline-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.13, pipelines.kubeflow.org/pipeline_compilation_time: '2022-09-21T18:18:28.568035',
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.13, pipelines.kubeflow.org/pipeline_compilation_time: '2022-09-24T15:11:45.532687',
     pipelines.kubeflow.org/pipeline_spec: '{"description": "A pipeline that trains
       and logs a classification model", "name": "XGBOOST-REC Pipeline"}'}
   labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.13}
@@ -26,14 +26,16 @@ spec:
   - name: extract-top5-10
     container:
       args: [--y_test, /tmp/inputs/input-0/data, --pred_probs, /tmp/inputs/input-1/data]
-      image: crysiss/kubeflow-metric:0.1
+      image: crysiss/kubeflow-metric:0.8.6
     inputs:
       artifacts:
-      - {name: split-data-x_test, path: /tmp/inputs/input-0/data}
+      - {name: split-data-y_test, path: /tmp/inputs/input-0/data}
       - {name: test-model-pred_probs, path: /tmp/inputs/input-1/data}
     outputs:
       artifacts:
+      - {name: extract-top5-10-idx, path: /tmp/idx.json}
       - {name: extract-top5-10-metrics, path: tmp/metrics.json}
+      - {name: extract-top5-10-y_test, path: /tmp/y_list.json}
     metadata:
       labels:
         pipelines.kubeflow.org/kfp_sdk_version: 1.8.13
@@ -123,7 +125,7 @@ spec:
         dependencies: [split-data, test-model]
         arguments:
           artifacts:
-          - {name: split-data-x_test, from: '{{tasks.split-data.outputs.artifacts.split-data-x_test}}'}
+          - {name: split-data-y_test, from: '{{tasks.split-data.outputs.artifacts.split-data-y_test}}'}
           - {name: test-model-pred_probs, from: '{{tasks.test-model.outputs.artifacts.test-model-pred_probs}}'}
       - name: preprocess-data
         template: preprocess-data
